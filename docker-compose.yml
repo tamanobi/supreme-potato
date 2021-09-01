@@ -1,0 +1,14 @@
+version: "3.8"
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: docker/backend/Dockerfile
+    ports:
+      - 8000:80
+  frontend:
+    image: nginx:latest
+    volumes:
+      - ./static:/usr/share/nginx/html:ro
+    ports:
+      - 8088:80
