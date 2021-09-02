@@ -1,5 +1,5 @@
 from fastapi import FastAPI
-from starlette.websockets import WebSocket
+from starlette.websockets import WebSocket, WebSocketDisconnect
 from db import database
 
 import logging
@@ -15,10 +15,14 @@ app = FastAPI()
 
 @app.on_event("startup")
 async def startup():
+    logger.info("startup")
+    return
     await database.connect()
 
 @app.on_event("shutdown")
 async def shutdown():
+    logger.info("shutdown")
+    return
     await database.disconnect()
 
 # 接続中のクライアントを識別するためのIDを格納
@@ -28,9 +32,11 @@ class WSClient:
     clients = {}
     def register(self, key: str, ws: WebSocket):
         self.clients[key] = ws
-
         logger.info("registered: %s", key)
-        logger.info("test")
+
+    def unregister(self, key: str):
+        self.clients.pop(key)
+        logger.info("unregistered: %s", key)
 
     def all(self) -> list:
         return list(self.clients.values())
@@ -41,12 +47,23 @@ async def websocket_endpoint(ws: WebSocket):
     wsc = WSClient()
     key = ws.headers.get('sec-websocket-key')
     wsc.register(key, ws)
-    logging.info("registered")
+
     try:
         while True:
-            data = await ws.receive_text()
-            logging.info("received %s", data)
+            data_string = await ws.receive_text()
+            import json
+            try:
+                data = json.loads(data_string)
+            except Exception as e:
+                logger.exception(e)
+                continue
+            logger.info("received %s", data)
             for client in wsc.all():
                 await client.send_text(f"ID: {key} | Message: {data}")
-    except:
+    except WebSocketDisconnect as e:
        await ws.close()
+       wsc.unregister(key)
+    except Exception as e:
+       logger.exception(e)
+       await ws.close()
+       wsc.unregister(key)

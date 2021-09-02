@@ -9,8 +9,9 @@ services:
     volumes:
       - ./backend:/app
     environment:
-      - RELOAD=1
-      - LOG_LEVEL=debug
+      - PYTHONUNBUFFERED=1
+      - WORKER_CLASS=wuvicorn.WUvicornWorker
+      - GUNICORN_CMD_ARGS="--reload --workers 1"
     depends_on:
       - database
   frontend:

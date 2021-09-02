@@ -6,6 +6,9 @@
     <body>
         <h1>WebSocket Chat</h1>
         <form action="" onsubmit="sendMessage(event)">
+            <label for="name">name</label>
+            <input type="text" id="name" autocomplete="off"/>
+            <label for="messageText">message</label>
             <input type="text" id="messageText" autocomplete="off"/>
             <button>Send</button>
         </form>
@@ -21,8 +24,13 @@
                 messages.appendChild(message)
             };
             function sendMessage(event) {
+                var name = document.getElementById("name")
                 var input = document.getElementById("messageText")
-                ws.send(input.value)
+                const data = {
+                    name: name.value,
+                    message: input.value
+                }
+                ws.send(JSON.stringify(data))
                 input.value = ''
                 event.preventDefault()
             }
