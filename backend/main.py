@@ -41,12 +41,17 @@ class WSClient:
     def all(self) -> list:
         return list(self.clients.values())
 
+    async def broadcast(self, message: str):
+        for client in self.all():
+            await client.send_text(message)
+
 @app.websocket("/ws")
 async def websocket_endpoint(ws: WebSocket):
     await ws.accept()
     wsc = WSClient()
     key = ws.headers.get('sec-websocket-key')
     wsc.register(key, ws)
+    await wsc.broadcast(f"join {key}")
 
     try:
         while True:
