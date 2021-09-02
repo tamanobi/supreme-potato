@@ -6,6 +6,11 @@ services:
       dockerfile: docker/backend/Dockerfile
     ports:
       - 8000:80
+    volumes:
+      - ./backend:/app
+    environment:
+      - RELOAD=1
+      - LOG_LEVEL=debug
     depends_on:
       - database
   frontend:
