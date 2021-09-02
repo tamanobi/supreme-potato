@@ -22,3 +22,5 @@ services:
       - POSTGRES_USER=fast
       - POSTGRES_PASSWORD=password
       - POSTGRES_DB=fast
+    ports:
+      - "5432:5432"

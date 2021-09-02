@@ -1,26 +1,35 @@
 from fastapi import FastAPI
 from starlette.websockets import WebSocket
+from db import database
+
 
 app = FastAPI()
 
-# 接続中のクライアントを識別するためのIDを格納
-clients = {}
+@app.on_event("startup")
+async def startup():
+    await database.connect()
 
-# WebSockets用のエンドポイント
+@app.on_event("shutdown")
+async def shutdown():
+    await database.disconnect()
+
+# 接続中のクライアントを識別するためのIDを格納
+clientstab = {}
+
 @app.websocket("/ws")
 async def websocket_endpoint(ws: WebSocket):
     await ws.accept()
-    # クライアントを識別するためのIDを取得
     key = ws.headers.get('sec-websocket-key')
-    clients[key] = ws
+    from clients.schemas import ClientCreate
+    from clients.models import clients
+    c = ClientCreate(key=key)
+    await database.execute(clients.insert(), c.dict())
+    clientstab[key] = ws
     try:
         while True:
-            # クライアントからメッセージを受信
             data = await ws.receive_text()
-            # 接続中のクライアントそれぞれにメッセージを送信（ブロードキャスト）
-            for client in clients.values():
+            for client in clientstab.values():
                 await client.send_text(f"ID: {key} | Message: {data}")
     except:
         await ws.close()
-        # 接続が切れた場合、当該クライアントを削除する
-        del clients[key]
+        del clientstab[key]
